@@ -6,10 +6,12 @@ use App\Models\Booking;
 use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    Mail::fake();
     $this->service = new BookingService();
     $this->user = User::factory()->create();
     $this->property = Property::factory()->create([

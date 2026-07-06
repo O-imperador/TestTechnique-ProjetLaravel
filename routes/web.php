@@ -3,9 +3,11 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+use App\Livewire\PropertyCatalogue;
+use App\Livewire\BookingForm;
+
+Route::get('/', PropertyCatalogue::class)->name('properties.index');
+Route::get('/properties/{property}/book', BookingForm::class)->name('properties.book');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
