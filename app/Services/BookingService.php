@@ -27,7 +27,7 @@ class BookingService
             throw new Exception("End date must be after start date.");
         }
 
-        return DB::transaction(function () use ($user, $property, $start, $end) {
+        $booking = DB::transaction(function () use ($user, $property, $start, $end) {
             // Lock the property row to prevent double booking in concurrent requests
             $lockedProperty = Property::where('id', $property->id)->lockForUpdate()->first();
 
@@ -58,5 +58,9 @@ class BookingService
                 'status' => 'confirmed',
             ]);
         });
+
+        \Illuminate\Support\Facades\Mail::to($user)->queue(new \App\Mail\BookingConfirmation($booking));
+
+        return $booking;
     }
 }

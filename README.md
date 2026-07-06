@@ -1,58 +1,89 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏡 Gestion de Réservations Immobilières - Test Technique
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Une mini-application Laravel de gestion de réservations immobilières avec une logique métier stricte, un système de file d'attente, et un panneau d'administration.
 
-## About Laravel
+Ce projet a été développé en utilisant :
+- **Laravel 11** (PHP 8.3) & **MySQL**
+- **Laravel Breeze** (Blade) pour l'authentification
+- **Livewire 3** pour la réactivité côté client (Catalogue & Formulaires)
+- **Filament v3** pour le panneau d'administration
+- **TailwindCSS** pour le styling
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🛠️ Installation & Lancement
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Prérequis : `php >= 8.2`, `composer`, `npm`, et une base de données MySQL.
 
-## Learning Laravel
+1. **Cloner le dépôt et installer les dépendances PHP :**
+   ```bash
+   git clone <votre-url-repo>
+   cd Test_technique
+   composer install
+   ```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+2. **Configurer l'environnement :**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   *Assurez-vous de renseigner vos identifiants MySQL dans le fichier `.env`.*
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+3. **Base de données et données de démonstration :**
+   Exécutez les migrations et les Seeders pour générer un utilisateur de test et +10 biens immobiliers :
+   ```bash
+   php artisan migrate --seed
+   ```
+   *(Un compte test est créé par défaut : Email: `test@example.com` / Mot de passe : `password`)*
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+4. **Compiler les assets front-end :**
+   ```bash
+   npm install
+   npm run build
+   ```
 
-## Agentic Development
+5. **Lancer le serveur de développement et les Workers :**
+   Ouvrez **deux** terminaux différents :
+   - Terminal 1 (Serveur Web) : `php artisan serve`
+   - Terminal 2 (File d'attente pour les emails) : `php artisan queue:work`
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+L'application est maintenant accessible sur `http://localhost:8000`.
 
+---
+
+## 🧪 Comment lancer les Tests
+
+Le projet utilise **Pest PHP** pour s'assurer que la logique métier critique (calcul de prix et chevauchement de dates) est solide à 100%.
+
+Pour lancer la suite de tests automatisée :
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test
+# ou
+./vendor/bin/pest
 ```
+*Note : Une intégration continue (GitHub Actions) est configurée dans `.github/workflows/tests.yml` pour lancer ces tests automatiquement à chaque push.*
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 🏗️ Choix Techniques & Architecture
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Prévention des Double-Réservations (Anti-Chevauchement)
+Au lieu de se reposer uniquement sur la validation classique des formulaires, la règle de chevauchement est vérifiée directement dans le `BookingService`.
+- **Validation Front/Back :** Livewire et les Form Requests empêchent les requêtes malformées (date_fin > date_début, pas de dates passées).
+- **Verrous Transactionnels (Pessimistic Locking) :** **Bonus** - Pour prévenir les "Race Conditions" (deux utilisateurs qui cliquent sur le bouton "Réserver" à la milliseconde près), l'application utilise une transaction de base de données avec `lockForUpdate()`. Cela verrouille la ligne du `Property` dans MySQL jusqu'à ce que la vérification de chevauchement soit terminée et la réservation sauvegardée.
 
-## Code of Conduct
+### 2. Réactivité du Catalogue (Livewire)
+Le système de recherche et de filtrage du catalogue (dates et texte) a été construit avec **Livewire**. Cela permet une expérience utilisateur fluide sans aucun rechargement de page. De même, le formulaire de réservation calcule le prix total en temps réel dès que les dates sont sélectionnées, conformément aux exigences.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. File d'Attente pour E-mails (Queues)
+L'envoi de l'e-mail de confirmation utilise les **Queues de Laravel**.
+- `QUEUE_CONNECTION` est configuré sur `database`.
+- Lorsqu'une réservation est confirmée, un Mailable Markdown est mis en file d'attente (`dispatch`). Cela permet à la page Web de charger instantanément sans attendre le serveur SMTP. Le daemon `queue:work` traite la tâche en arrière-plan.
 
-## Security Vulnerabilities
+### 4. Panneau d'Administration (Filament)
+**Filament v3** a été choisi pour construire le panneau d'administration (accessible via `/admin`).
+- Les administrateurs peuvent réaliser un CRUD complet sur les biens immobiliers.
+- Une vue "Lecture Seule" a été créée pour les réservations, avec une action personnalisée **"Annuler"** permettant aux administrateurs d'annuler manuellement une réservation sans supprimer la ligne en base de données, conservant ainsi un historique propre.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 5. Autorisations de l'Utilisateur (Policies)
+La sécurité du tableau de bord utilisateur est gérée par une **Policy** (`BookingPolicy`). L'utilisateur ne peut voir et n'annuler que **ses propres** réservations.
